@@ -1,0 +1,21 @@
+# Riippuvuudet
+node_modules/
+
+# Lokit
+*.log
+npm-debug.log*
+
+# Ympäristömuuttujat
+.env
+.env.*
+
+# Playwrightin ja testien tuotokset
+playwright-report/
+test-results/
+coverage/
+
+# Editorit ja käyttöjärjestelmä
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

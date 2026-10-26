@@ -1,0 +1,14 @@
+{
+  "name": "saaseuranta",
+  "version": "0.1.0",
+  "description": "Hakee usean kaupungin sääennusteen Open-Meteosta, tallentaa sen JSON-tiedostoon ja tarjoaa sen Express-rajapinnan kautta.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "fetch": "node src/fetchWeather.js"
+  },
+  "license": "MIT"
+}
