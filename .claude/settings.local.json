@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(sed 's/latitude=\\\\${leveysaste}/lat=${leveysaste}/' src/fetchWeather.js)",
+      "Bash(cp /tmp/broken.mjs src/_broken_test.js)",
+      "Bash(node src/_broken_test.js)"
+    ]
+  }
+}
