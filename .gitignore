@@ -19,3 +19,6 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Claude Coden paikalliset asetukset
+.claude/settings.local.json
