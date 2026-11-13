@@ -20,12 +20,22 @@ Node.js-harjoitusprojekti: hakee usean kaupungin sääennusteen [Open-Meteo](htt
 ## Käyttö
 
 ```bash
-npm run fetch   # hakee säätiedot (kun src/fetchWeather.js on kirjoitettu)
+npm run fetch   # hakee Helsingin nykyisen lämpötilan ja tulostaa sen
 ```
 
-## Tekemättä
+Esimerkkituloste:
 
-- [ ] `src/fetchWeather.js`: Helsingin nykyinen lämpötila
+```
+Haetaan säätietoja: Helsinki
+================================
+Helsinki: 4.7 °C
+Päivitetty: 13.11.2026 klo 19.15
+================================
+```
+
+## Eteneminen
+
+- [x] `src/fetchWeather.js`: Helsingin nykyinen lämpötila
 - [ ] Useampi kaupunki ja tallennus JSON-tiedostoon
 - [ ] Express-rajapinta
 - [ ] Käyttöliittymä
