@@ -5,11 +5,20 @@
 // Open-Meteo on ilmainen eikä vaadi API-avainta.
 // Dokumentaatio: https://open-meteo.com/en/docs
 
-// --- 1. Kaupungin tiedot ---
-// Open-Meteo tunnistaa paikan koordinaateista, ei kaupungin nimestä.
-// Nimi on vain tulostusta varten.
-const kaupunki = "Helsinki";
-const koordinaatit = { lat: 60.1699, lon: 24.9384 };
+// --- 1. Kaupunkien tiedot ---
+// Taulukko (array, [ ]) olioita ({ }): jokainen olio on yksi kaupunki.
+// Open-Meteo tunnistaa paikan koordinaateista (lat = leveysaste, lon = pituusaste),
+// ei kaupungin nimestä. Nimi on vain tulostusta varten.
+// Yksittäiseen kaupunkiin viitataan indeksillä, joka alkaa nollasta:
+// kaupungit[0] on Helsinki ja kaupungit[0].lat sen leveysaste.
+// Uuden kaupungin saa mukaan lisäämällä listaan rivin.
+const kaupungit = [
+  { nimi: "Helsinki", lat: 60.1699, lon: 24.9384 },
+  { nimi: "Tampere", lat: 61.4981, lon: 23.76 },
+  { nimi: "Turku", lat: 60.4518, lon: 22.2666 },
+  { nimi: "Oulu", lat: 65.0121, lon: 25.4651 },
+  { nimi: "Rovaniemi", lat: 66.5039, lon: 25.7294 },
+];
 
 // --- 2. Pyynnön osoite ---
 // Template literal (`...`) upottaa muuttujat merkinnällä ${...}.
@@ -19,9 +28,12 @@ const koordinaatit = { lat: 60.1699, lon: 24.9384 };
 //   timezone=Europe%2FHelsinki = ajat Suomen aikana (%2F on URL-koodattu /-merkki).
 //                                Ilman tätä ajat tulisivat GMT-aikana.
 // Vinkki: kopioi osoite selaimeen, niin näet vastauksen JSON-rakenteen.
-const osoite = `https://api.open-meteo.com/v1/forecast?latitude=${koordinaatit.lat}&longitude=${koordinaatit.lon}&current=temperature_2m&timezone=Europe%2FHelsinki`;
+const osoite = `https://api.open-meteo.com/v1/forecast?latitude=${kaupungit[0].lat}&longitude=${kaupungit[0].lon}&current=temperature_2m&timezone=Europe%2FHelsinki`;
 
-console.log(`Haetaan säätietoja: ${kaupunki}`);
+// .map() tekee taulukosta uuden taulukon: jokaisesta kaupunkioliosta (k) otetaan nimi.
+// .join(", ") yhdistää nimet yhdeksi tekstiksi pilkuilla erotettuna.
+// Tulos: "Helsinki, Tampere, Turku, Oulu, Rovaniemi"
+console.log(`Haetaan säätietoja: ${kaupungit.map((k) => k.nimi).join(", ")}`);
 
 // --- 3. Haku ja virheenkäsittely ---
 // fetch ja .json() ovat hitaita (verkko), joten ne palauttavat lupauksen (Promise).
@@ -68,7 +80,7 @@ try {
   });
 
   console.log("================================");
-  console.log(`${kaupunki}: ${lampotila} ${yksikko}`);
+  console.log(`${kaupungit[0].nimi}: ${lampotila} ${yksikko}`);
   console.log(`Päivitetty: ${paivitettyMuotoiltu}`);
   console.log("================================");
 } catch (virhe) {
