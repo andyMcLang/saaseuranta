@@ -1,16 +1,20 @@
 // fetchWeather.js
-// Hakee Helsingin nykyisen lämpötilan Open-Meteo-rajapinnasta ja tulostaa sen.
+// Hakee usean kaupungin nykyisen lämpötilan Open-Meteo-rajapinnasta ja tulostaa ne.
 // Aja projektin juuressa: npm run fetch
 //
 // Open-Meteo on ilmainen eikä vaadi API-avainta.
 // Dokumentaatio: https://open-meteo.com/en/docs
+//
+// Kulku lyhyesti:
+//   1. kaupunkilista
+//   2. haeSaa(kaupunki) hakee yhden kaupungin sään
+//   3. Promise.all ajaa kaikki haut samanaikaisesti ja odottaa, että ne ovat valmiita
+//   4. tulokset tulostetaan listan järjestyksessä
 
 // --- 1. Kaupunkien tiedot ---
 // Taulukko (array, [ ]) olioita ({ }): jokainen olio on yksi kaupunki.
 // Open-Meteo tunnistaa paikan koordinaateista (lat = leveysaste, lon = pituusaste),
 // ei kaupungin nimestä. Nimi on vain tulostusta varten.
-// Yksittäiseen kaupunkiin viitataan indeksillä, joka alkaa nollasta:
-// kaupungit[0] on Helsinki ja kaupungit[0].lat sen leveysaste.
 // Uuden kaupungin saa mukaan lisäämällä listaan rivin.
 const kaupungit = [
   { nimi: "Helsinki", lat: 60.1699, lon: 24.9384 },
@@ -20,70 +24,98 @@ const kaupungit = [
   { nimi: "Rovaniemi", lat: 66.5039, lon: 25.7294 },
 ];
 
-// --- 2. Pyynnön osoite ---
-// Template literal (`...`) upottaa muuttujat merkinnällä ${...}.
-// ? aloittaa parametrit ja & erottaa ne toisistaan. Parametrit:
-//   latitude / longitude  = leveys- ja pituusaste
-//   current=temperature_2m = nykyinen lämpötila 2 metrin korkeudelta
-//   timezone=Europe%2FHelsinki = ajat Suomen aikana (%2F on URL-koodattu /-merkki).
-//                                Ilman tätä ajat tulisivat GMT-aikana.
-// Vinkki: kopioi osoite selaimeen, niin näet vastauksen JSON-rakenteen.
-const osoite = `https://api.open-meteo.com/v1/forecast?latitude=${kaupungit[0].lat}&longitude=${kaupungit[0].lon}&current=temperature_2m&timezone=Europe%2FHelsinki`;
+// --- 2. Yhden kaupungin haku ---
+// async-funktio palauttaa aina lupauksen (Promise), ja sen sisällä voi käyttää awaitia.
+// Funktio palauttaa olion:
+//   onnistui: { nimi, lampotila, yksikko, paivitetty }
+//   epäonnistui: { nimi, virhe }
+// Virhe otetaan kiinni tässä funktiossa eikä heitetä eteenpäin. Siksi yksi epäonnistunut
+// kaupunki ei kaada muita (ks. kohta 3).
+async function haeSaa(kaupunki) {
+  // Osoitteen parametrit (? aloittaa, & erottaa):
+  //   latitude / longitude   = leveys- ja pituusaste
+  //   current=temperature_2m = nykyinen lämpötila 2 metrin korkeudelta
+  //   timezone=Europe/Helsinki = ajat Suomen aikana. Ilman tätä ajat tulisivat GMT-aikana.
+  // Vinkki: kopioi osoite selaimeen, niin näet vastauksen JSON-rakenteen.
+  const osoite = `https://api.open-meteo.com/v1/forecast?latitude=${kaupunki.lat}&longitude=${kaupunki.lon}&current=temperature_2m&timezone=Europe/Helsinki`;
 
-// .map() tekee taulukosta uuden taulukon: jokaisesta kaupunkioliosta (k) otetaan nimi.
-// .join(", ") yhdistää nimet yhdeksi tekstiksi pilkuilla erotettuna.
-// Tulos: "Helsinki, Tampere, Turku, Oulu, Rovaniemi"
-console.log(`Haetaan säätietoja: ${kaupungit.map((k) => k.nimi).join(", ")}`);
+  // Virheitä on kahdenlaisia:
+  //   1. Verkkovirhe (väärä palvelin, ei nettiä): fetch heittää virheen itse
+  //      ja suoritus hyppää catch-lohkoon. Viesti: "fetch failed".
+  //   2. Palvelin vastaa virhekoodilla (esim. 400 = väärä parametri):
+  //      fetch EI heitä virhettä, joten se tarkistetaan itse vastaus.ok:lla.
+  try {
+    const vastaus = await fetch(osoite);
 
-// --- 3. Haku ja virheenkäsittely ---
-// fetch ja .json() ovat hitaita (verkko), joten ne palauttavat lupauksen (Promise).
-// await odottaa tuloksen. Ylimmällä tasolla await toimii, koska package.json:ssa
-// on "type": "module".
+    // ok on true, kun tilakoodi on 200–299. Muuten heitetään oma virhe,
+    // ja throw hyppää suoraan catch-lohkoon. Tarkistus tehdään ennen .json():ia.
+    if (!vastaus.ok) {
+      throw new Error(`Palvelin palautti virheen: ${vastaus.status}`);
+    }
+
+    // Muuttaa vastauksen tekstin JavaScript-olioksi.
+    const data = await vastaus.json();
+
+    // Vianetsintä: jos jokin arvo on undefined, kentän nimi tai polku on väärin.
+    // Poista kommentti seuraavan rivin alusta, niin näet koko vastauksen:
+    // console.log(data);
+
+    // Vastauksen rakenne (lyhennettynä):
+    // {
+    //   current_units: { time: "iso8601", temperature_2m: "°C" },          ← yksiköt
+    //   current:       { time: "2026-11-16T21:00", temperature_2m: 5.5 }   ← arvot
+    // }
+    // Arvo ja sen yksikkö löytyvät samalla kentän nimellä eri olioista.
+    return {
+      nimi: kaupunki.nimi,
+      lampotila: data.current.temperature_2m,
+      yksikko: data.current_units.temperature_2m,
+      paivitetty: data.current.time,
+    };
+  } catch (virhe) {
+    // virhe.message on pelkkä viesti. Koko virhe-olio sisältäisi myös pitkän virhepinon.
+    return { nimi: kaupunki.nimi, virhe: virhe.message };
+  }
+}
+
+// --- 3. Kaikki haut samanaikaisesti: Promise.all ---
+// kaupungit.map(haeSaa) kutsuu haeSaa-funktiota jokaiselle kaupungille HETI.
+// Tuloksena on taulukko lupauksia, ja kaikki viisi hakua ovat käynnissä yhtä aikaa.
 //
-// Virheitä on kahdenlaisia:
-//   1. Verkkovirhe (väärä palvelin, ei nettiä): fetch heittää virheen itse
-//      ja suoritus hyppää catch-lohkoon. Viesti: "fetch failed".
-//   2. Palvelin vastaa virhekoodilla (esim. 400 = väärä parametri):
-//      fetch EI heitä virhettä, joten se pitää tarkistaa itse response.ok:lla.
-try {
-  const vastaus = await fetch(osoite);
+// Promise.all(lupaukset) odottaa, että KAIKKI lupaukset ovat valmiita, ja antaa
+// tulokset taulukkona SAMASSA JÄRJESTYKSESSÄ kuin lista, vaikka vastaukset saapuisivat
+// eri järjestyksessä. tulokset[0] on siis aina Helsinki.
+//
+// Ero for...of + await -silmukkaan:
+//   silmukka:    Helsinki → odota → Tampere → odota → ...  (aika = kaikkien hakujen summa)
+//   Promise.all: kaikki yhtä aikaa                          (aika = hitaimman haun kesto)
+//
+// Tärkeää: Promise.all hylkää koko tuloksen, jos YKSIKIN lupaus epäonnistuu.
+// Siksi haeSaa ottaa virheensä itse kiinni ja palauttaa { nimi, virhe }.
+// Vaihtoehto: Promise.allSettled ei koskaan hylkää, vaan kertoo jokaisesta
+// lupauksesta erikseen, onnistuiko se ("fulfilled") vai epäonnistuiko ("rejected").
+console.log(`Haetaan säätietoja: ${kaupungit.map((k) => k.nimi).join(", ")}\n`);
 
-  // ok on true, kun tilakoodi on 200–299. Muuten heitetään oma virhe,
-  // ja throw hyppää suoraan catch-lohkoon. Tarkistus tehdään ennen .json():ia.
-  if (!vastaus.ok) {
-    throw new Error(`Palvelin palautti virheen: ${vastaus.status}`);
+const tulokset = await Promise.all(kaupungit.map(haeSaa));
+
+// --- 4. Tulostus ---
+// Tulostus tehdään vasta, kun kaikki haut ovat valmiita, joten järjestys pysyy samana.
+for (const tulos of tulokset) {
+  // Jos oliossa on virhe-kenttä, haku epäonnistui.
+  if (tulos.virhe) {
+    console.error(`Virhe haettaessa säätietoja (${tulos.nimi}): ${tulos.virhe}`);
+    continue; // continue hyppää silmukan seuraavaan kierrokseen
   }
 
-  // Muuttaa vastauksen tekstin JavaScript-olioksi.
-  const data = await vastaus.json();
-
-  // Vianetsintä: jos jokin arvo on undefined, kentän nimi tai polku on väärin.
-  // Poista kommentti seuraavan rivin alusta, niin näet koko vastauksen:
-  // console.log(data);
-
-  // Vastauksen rakenne (lyhennettynä):
-  // {
-  //   current_units: { time: "iso8601", temperature_2m: "°C" },  ← yksiköt
-  //   current:       { time: "2026-11-13T19:15", temperature_2m: 4.7 } ← arvot
-  // }
-  // Arvo ja sen yksikkö löytyvät samalla kentän nimellä eri olioista.
-  const lampotila = data.current.temperature_2m;
-  const yksikko = data.current_units.temperature_2m;
-
-  // Aika tulee ISO 8601 -muodossa ("2026-11-13T19:15", T erottaa päivän ja kellonajan).
+  // Aika tulee ISO 8601 -muodossa ("2026-11-16T21:00", T erottaa päivän ja kellonajan).
   // new Date() muuttaa sen päivämääräolioksi, ja toLocaleString muotoilee sen
-  // suomalaisittain, esim. "13.11.2026 klo 19.15".
-  const paivitetty = new Date(data.current.time);
-  const paivitettyMuotoiltu = paivitetty.toLocaleString("fi-FI", {
+  // suomalaisittain, esim. "16.11.2026 klo 21.00".
+  const paivitettyMuotoiltu = new Date(tulos.paivitetty).toLocaleString("fi-FI", {
     dateStyle: "short",
     timeStyle: "short",
   });
 
-  console.log("================================");
-  console.log(`${kaupungit[0].nimi}: ${lampotila} ${yksikko}`);
+  console.log(`${tulos.nimi}: ${tulos.lampotila} ${tulos.yksikko}`);
   console.log(`Päivitetty: ${paivitettyMuotoiltu}`);
   console.log("================================");
-} catch (virhe) {
-  // virhe.message on pelkkä viesti. Koko virhe-olio tulostaisi myös pitkän virhepinon.
-  console.error("Virhe haettaessa säätietoja:", virhe.message);
 }
