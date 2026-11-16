@@ -28,7 +28,7 @@ const kaupungit = [
 // async-funktio palauttaa aina lupauksen (Promise), ja sen sisällä voi käyttää awaitia.
 // Funktio palauttaa olion:
 //   onnistui: { nimi, lampotila, yksikko, paivitetty }
-//   epäonnistui: { nimi, virhe }
+//   epäonnistui: { nimi, virheviesti }
 // Virhe otetaan kiinni tässä funktiossa eikä heitetä eteenpäin. Siksi yksi epäonnistunut
 // kaupunki ei kaada muita (ks. kohta 3).
 async function haeSaa(kaupunki) {
@@ -73,8 +73,13 @@ async function haeSaa(kaupunki) {
       paivitetty: data.current.time,
     };
   } catch (virhe) {
-    // virhe.message on pelkkä viesti. Koko virhe-olio sisältäisi myös pitkän virhepinon.
-    return { nimi: kaupunki.nimi, virhe: virhe.message };
+    // Kaksi eri asiaa, siksi eri nimet:
+    //   virhe       = catch-MUUTTUJA (virheolio). On olemassa vain tämän lohkon sisällä.
+    //   virheviesti = palautettavan OLION KENTTÄ. Kulkee olion mukana ulos funktiosta.
+    // Viesti kopioidaan muuttujasta olion kenttään, ja return lähettää olion ulos.
+    // Silmukka (kohta 4) lukee sitten olion kenttää tulos.virheviesti, ei tätä muuttujaa.
+    // virhe.message on pelkkä viesti. Koko virheolio sisältäisi myös pitkän virhepinon.
+    return { nimi: kaupunki.nimi, virheviesti: virhe.message };
   }
 }
 
@@ -91,7 +96,7 @@ async function haeSaa(kaupunki) {
 //   Promise.all: kaikki yhtä aikaa                          (aika = hitaimman haun kesto)
 //
 // Tärkeää: Promise.all hylkää koko tuloksen, jos YKSIKIN lupaus epäonnistuu.
-// Siksi haeSaa ottaa virheensä itse kiinni ja palauttaa { nimi, virhe }.
+// Siksi haeSaa ottaa virheensä itse kiinni ja palauttaa { nimi, virheviesti }.
 // Vaihtoehto: Promise.allSettled ei koskaan hylkää, vaan kertoo jokaisesta
 // lupauksesta erikseen, onnistuiko se ("fulfilled") vai epäonnistuiko ("rejected").
 console.log(`Haetaan säätietoja: ${kaupungit.map((k) => k.nimi).join(", ")}\n`);
@@ -101,19 +106,26 @@ const tulokset = await Promise.all(kaupungit.map(haeSaa));
 // --- 4. Tulostus ---
 // Tulostus tehdään vasta, kun kaikki haut ovat valmiita, joten järjestys pysyy samana.
 for (const tulos of tulokset) {
-  // Jos oliossa on virhe-kenttä, haku epäonnistui.
-  if (tulos.virhe) {
-    console.error(`Virhe haettaessa säätietoja (${tulos.nimi}): ${tulos.virhe}`);
+  // tulos on haeSaa:n palauttama olio. Jos siinä on kenttä virheviesti, haku epäonnistui.
+  // Onnistuneessa oliossa kenttää ei ole, jolloin tulos.virheviesti on undefined
+  // ja if tulkitsee sen epätodeksi.
+  if (tulos.virheviesti) {
+    console.error(
+      `Virhe haettaessa säätietoja (${tulos.nimi}): ${tulos.virheviesti}`,
+    );
     continue; // continue hyppää silmukan seuraavaan kierrokseen
   }
 
   // Aika tulee ISO 8601 -muodossa ("2026-11-16T21:00", T erottaa päivän ja kellonajan).
   // new Date() muuttaa sen päivämääräolioksi, ja toLocaleString muotoilee sen
   // suomalaisittain, esim. "16.11.2026 klo 21.00".
-  const paivitettyMuotoiltu = new Date(tulos.paivitetty).toLocaleString("fi-FI", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  const paivitettyMuotoiltu = new Date(tulos.paivitetty).toLocaleString(
+    "fi-FI",
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+  );
 
   console.log(`${tulos.nimi}: ${tulos.lampotila} ${tulos.yksikko}`);
   console.log(`Päivitetty: ${paivitettyMuotoiltu}`);
