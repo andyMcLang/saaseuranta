@@ -49,3 +49,27 @@ Päivitetty: 16.11.2026 klo 21.15
 - [ ] Käyttöliittymä
 - [ ] Supertest- ja Playwright-testit
 - [ ] GitHub Actions -CI
+
+## Testaussuunnitelma ja Laadunvarmistus (QA)
+
+Tämä projekti toimii testiautomaation ja laadunvarmistuksen portfoliona. Sovelluksen arkkitehtuuri on suunniteltu siten, että sitä voidaan testata kattavasti eri tasoilla.
+
+### 1. Tunnistetut riskit (Risk-based testing)
+- Ulkoinen riippuvuus: Open-Meteo API saattaa olla alhaalla tai vastata hitaasti.
+- Datan eheyden muuttuminen: Rajapinnan palauttama JSON-rakenne voi muuttua.
+- Virheensietokyky: Yhden kaupungin säähaun epäonnistuminen ei saa kaataa koko Node.js-prosessia.
+
+### 2. Verifiointipisteet ja Testitasot
+Testiautomaatio toteutetaan CI/CD-putkeen (GitHub Actions) seuraavasti:
+
+**API-testaus (Supertest / Jest):**
+- Verifioidaan, että `/api/weather` palauttaa HTTP-statuskoodin `200 OK`.
+- Verifioidaan, että palautettu JSON-data vastaa odotettua skeemaa (sisältää kentät kaupungin nimelle ja lämpötilalle).
+- Verifioidaan negatiivinen skenaario: Miten rajapinta käyttäytyy, jos Open-Meteo on saavuttamattomissa?
+
+**Käyttöliittymätestaus / E2E (Playwright):**
+- Verifioidaan DOM:sta, että haetut kaupungit ja lämpötilat renderöityvät käyttäjälle oikein.
+- Suoritetaan visuaalinen ja toiminnallinen feature-testaus selaimessa.
+
+**Tutkiva testaus (Exploratory Testing):**
+- Ennen automaation kirjoittamista suoritan sovellukselle aikarajatun tutkivan testauksen (esim. poikkeuksellisten syötteiden tai hitaan verkkoyhteyden simulointi selaintyökaluilla).
