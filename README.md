@@ -20,7 +20,7 @@ Node.js-harjoitusprojekti: hakee usean kaupungin sääennusteen [Open-Meteo](htt
 ## Käyttö
 
 ```bash
-npm run fetch   # hakee kaupunkien nykyiset lämpötilat ja tulostaa ne
+npm run fetch   # hakee kaupunkien nykyiset lämpötilat ja kolmen päivän ennusteen
 ```
 
 Kaupungit (Helsinki, Tampere, Turku, Oulu, Rovaniemi) haetaan samanaikaisesti `Promise.all`illa. Jos yhden kaupungin haku epäonnistuu, muut tulostuvat silti.
@@ -30,11 +30,12 @@ Esimerkkituloste:
 ```
 Haetaan säätietoja: Helsinki, Tampere, Turku, Oulu, Rovaniemi
 
-Helsinki: 5.5 °C
-Päivitetty: 16.11.2026 klo 21.15
-================================
-Tampere: 4.9 °C
-Päivitetty: 16.11.2026 klo 21.15
+Helsinki: -0.7 °C
+Päivitetty: 25.11.2026 klo 23.00
+Kolmen päivän ennuste:
+  25.11.2026: -0.8 ... 1.5 °C
+  26.11.2026: -3.1 ... 0 °C
+  27.11.2026: -4.1 ... -1.2 °C
 ================================
 ...
 ```
@@ -43,7 +44,7 @@ Päivitetty: 16.11.2026 klo 21.15
 
 - [x] `src/fetchWeather.js`: Helsingin nykyinen lämpötila
 - [x] Useampi kaupunki (haku samanaikaisesti `Promise.all`illa)
-- [ ] Sääennuste (`daily` tai `hourly`)
+- [x] Sääennuste (päivän alin ja ylin lämpötila kolmelle päivälle)
 - [ ] Tallennus JSON-tiedostoon
 - [ ] Express-rajapinta
 - [ ] Käyttöliittymä
